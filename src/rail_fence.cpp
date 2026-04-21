@@ -1,85 +1,122 @@
-#include <cctype>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <cctype>
 
 using namespace std;
 
-bool is_valid_message(const string &text) {
+// Q7: Kiểm tra đầu vào chỉ chấp nhận chữ cái và dấu cách
+bool isValidInput(const string& text) {
     for (char c : text) {
-        if (!isalpha(static_cast<unsigned char>(c)) && c != ' ') {
+        if (!isalpha(c) && c != ' ') {
             return false;
         }
     }
     return true;
 }
 
-string rail_fence_encrypt(const string &plaintext, int rails) {
-    if (rails <= 1 || plaintext.empty()) return plaintext;
+// Hàm mã hóa Rail Fence (Q4, Q6)
+string rail_fence_encrypt(string text, int rails) {
+    if (rails <= 1 || text.empty()) return text;
+    if (!isValidInput(text)) return "Loi: Dau vao khong hop le!";
 
     vector<string> fence(rails, "");
-    int rail = 0;
-    int direction = 1;
+    int row = 0;
+    bool down = false;
 
-    for (char c : plaintext) {
-        // TODO(student): Q6 can keep spaces as normal characters.
-        fence[rail] += c;
-        rail += direction;
-        if (rail == rails - 1 || rail == 0) direction = -direction;
+    for (char c : text) {
+        fence[row] += c; // Q6: Giữ nguyên dấu cách vì isValidInput đã cho phép
+        if (row == 0 || row == rails - 1) down = !down;
+        row += down ? 1 : -1;
     }
 
-    string ciphertext;
-    for (const string &row : fence) ciphertext += row;
-    return ciphertext;
+    string result = "";
+    for (string s : fence) result += s;
+    return result;
 }
 
-string rail_fence_decrypt(const string &ciphertext, int rails) {
-    // TODO(student): Q5
-    return ciphertext;
+// Hàm giải mã Rail Fence (Q5)
+string rail_fence_decrypt(string cipher, int rails) {
+    if (rails <= 1 || cipher.empty()) return cipher;
+    if (!isValidInput(cipher)) return "Loi: Dau vao khong hop le!";
+
+    // Đánh dấu các vị trí zigzag
+    vector<vector<bool>> mark(rails, vector<bool>(cipher.length(), false));
+    int row = 0;
+    bool down = false;
+
+    for (int i = 0; i < cipher.length(); i++) {
+        mark[row][i] = true;
+        if (row == 0 || row == rails - 1) down = !down;
+        row += down ? 1 : -1;
+    }
+
+    // Điền các ký tự của bản mã vào các vị trí đã đánh dấu
+    vector<string> fence(rails, string(cipher.length(), '\n'));
+    int idx = 0;
+    for (int r = 0; r < rails; r++) {
+        for (int c = 0; c < cipher.length(); c++) {
+            if (mark[r][c] && idx < cipher.length()) {
+                fence[r][c] = cipher[idx++];
+            }
+        }
+    }
+
+    // Đọc lại bản rõ theo đường zigzag
+    string result = "";
+    row = 0;
+    down = false;
+    for (int i = 0; i < cipher.length(); i++) {
+        result += fence[row][i];
+        if (row == 0 || row == rails - 1) down = !down;
+        row += down ? 1 : -1;
+    }
+    return result;
 }
 
-string read_message_from_file(const string &path) {
-    ifstream fin(path);
-    string line;
-    getline(fin, line);
-    return line;
+// Q8: Đọc thông điệp từ file input.txt
+string readFromFile(string filepath) {
+    ifstream file(filepath);
+    string content = "", line;
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            content += line;
+        }
+        file.close();
+    } else {
+        cout << "Khong the mo file: " << filepath << endl;
+    }
+    return content;
 }
 
 int main() {
-    cout << "=== Rail Fence Cipher Demo ===\n";
-    cout << "1. Encrypt\n2. Decrypt\n3. Read from file and encrypt\nChoose: ";
-
-    int choice;
-    cin >> choice;
-    cin.ignore();
-
-    string message;
-    int rails;
-
-    if (choice == 3) {
-        message = read_message_from_file("data/input.txt");
-        cout << "Message from file: " << message << "\n";
-    } else {
-        cout << "Enter message: ";
-        getline(cin, message);
+    cout << "=== RAIL FENCE CIPHER ===" << endl;
+    
+    // Q8: Đọc từ file
+    string fileInput = readFromFile("data/input.txt");
+    if (!fileInput.empty()) {
+        cout << "\n--- Test voi du lieu tu file ---" << endl;
+        cout << "Noi dung file: " << fileInput << endl;
+        string fileEnc = rail_fence_encrypt(fileInput, 4);
+        cout << "Ma hoa (4 rails): " << fileEnc << endl;
     }
 
-    cout << "Enter rails: ";
-    cin >> rails;
+    cout << "\n--- Test truong hop tieu chuan ---" << endl;
+    string plainText = "I LOVE YOU";
+    int rails = 4; // Q4: Đổi số ray thành 4
 
-    if (!is_valid_message(message)) {
-        cout << "Invalid input. Only letters and spaces are allowed.\n";
-        return 0;
-    }
+    string cipherText = rail_fence_encrypt(plainText, rails);
+    cout << "Plaintext: " << plainText << endl;
+    cout << "Ciphertext (4 rails): " << cipherText << endl;
 
-    if (choice == 1 || choice == 3) {
-        cout << "Ciphertext: " << rail_fence_encrypt(message, rails) << "\n";
-    } else if (choice == 2) {
-        cout << "Plaintext: " << rail_fence_decrypt(message, rails) << "\n";
-    } else {
-        cout << "Invalid choice.\n";
-    }
+    string decryptedText = rail_fence_decrypt(cipherText, rails);
+    cout << "Decrypted: " << decryptedText << endl;
+
+    cout << "\n--- Test dau vao khong hop le ---" << endl;
+    string badInput = "Hello 123!";
+    cout << "Input: " << badInput << endl;
+    cout << "Result: " << rail_fence_encrypt(badInput, 3) << endl;
 
     return 0;
 }
