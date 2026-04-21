@@ -1,69 +1,55 @@
-#include <cctype>
 #include <iostream>
 #include <string>
+#include <cctype> // Thư viện cung cấp isupper(), islower()
 
 using namespace std;
 
-bool is_valid_message(const string &text) {
+// Hàm mã hóa Caesar
+string caesarEncrypt(string text, int key) {
+    string result = "";
+    
+    // Đảm bảo key luôn nằm trong khoảng 0-25 (tránh lỗi khi key quá lớn hoặc âm)
+    key = key % 26;
+    if (key < 0) key += 26;
+
     for (char c : text) {
-        if (!isalpha(static_cast<unsigned char>(c)) && c != ' ') {
-            return false;
+        if (isupper(c)) {
+            // Xử lý chữ in hoa
+            result += char((c - 'A' + key) % 26 + 'A');
+        } 
+        else if (islower(c)) {
+            // Q1: Xử lý chữ in thường
+            result += char((c - 'a' + key) % 26 + 'a');
+        } 
+        else {
+            // Q2: Xử lý dấu cách (và các ký tự đặc biệt khác)
+            // Nếu không phải chữ cái, ta giữ nguyên ký tự đó
+            result += c;
         }
     }
-    return true;
+    return result;
 }
 
-char shift_char(char c, int shift) {
-    if (!isalpha(static_cast<unsigned char>(c))) return c;
-
-    char base = isupper(static_cast<unsigned char>(c)) ? 'A' : 'a';
-    shift %= 26;
-    if (shift < 0) shift += 26;
-    return static_cast<char>((c - base + shift) % 26 + base);
-}
-
-string caesar_encrypt(const string &plaintext, int shift) {
-    string ciphertext;
-    for (char c : plaintext) {
-        // TODO(student): Q1 + Q2
-        ciphertext += shift_char(c, shift);
-    }
-    return ciphertext;
-}
-
-string caesar_decrypt(const string &ciphertext, int shift) {
-    // TODO(student): Q3
-    return caesar_encrypt(ciphertext, -shift);
+// Hàm giải mã Caesar (Q3)
+string caesarDecrypt(string text, int key) {
+    // Mẹo nhỏ: Giải mã bản chất là dịch ngược lại. 
+    // Dịch lùi 'key' bước tương đương với việc dịch tới '26 - key' bước.
+    // Do đó ta có thể tái sử dụng luôn hàm Encrypt!
+    int decryptKey = 26 - (key % 26);
+    return caesarEncrypt(text, decryptKey);
 }
 
 int main() {
-    cout << "=== Caesar Cipher Demo ===\n";
-    cout << "1. Encrypt\n2. Decrypt\nChoose: ";
+    string plainText = "hello world";
+    int key = 5;
 
-    int choice;
-    cin >> choice;
-    cin.ignore();
+    // Test mã hóa
+    string cipherText = caesarEncrypt(plainText, key);
+    cout << "Ciphertext: " << cipherText << endl;
 
-    string message;
-    int shift;
-
-    cout << "Enter message: ";
-    getline(cin, message);
-    cout << "Enter key: ";
-    cin >> shift;
-
-    if (!is_valid_message(message)) {
-        cout << "Invalid input. Only letters and spaces are allowed.\n";
-        return 0;
-    }
-
-    if (choice == 1) {
-        cout << "Ciphertext: " << caesar_encrypt(message, shift) << "\n";
-    } else if (choice == 2) {
-        cout << "Plaintext: " << caesar_decrypt(message, shift) << "\n";
-    } else {
-        cout << "Invalid choice.\n";
-    }
+    // Test giải mã
+    string decryptedText = caesarDecrypt(cipherText, key);
+    cout << "Decrypted: " << decryptedText << endl;
 
     return 0;
 }
